@@ -1,3 +1,6 @@
+From Stdlib Require Import Relations.Relation_Operators Relations.Operators_Properties.
+(* makes reflexive transitive closure (clos_refl_trans) easier to work with *)
+
 Inductive Expr: Set :=
 | ELitNat (n: nat)
 | ELitBool (b: bool)
@@ -11,6 +14,12 @@ Variant Value: Set :=
 | VNat (n: nat)
 | VBool (b: bool)
 .
+
+Definition value_to_expr (v: Value): Expr :=
+  match v with
+  | VNat n => ELitNat n
+  | VBool b => ELitBool b
+  end.
 
 Fixpoint eval (sigma: nat -> option Value) (e: Expr): option Value :=
   match e with
@@ -38,7 +47,7 @@ Fixpoint eval (sigma: nat -> option Value) (e: Expr): option Value :=
 
 (* Should some of it be left as exercise? *)
 Inductive SStepEval (sigma: nat -> option Value): Expr -> Expr -> Prop :=
-| SSEVarNat (v: nat) (n: nat): sigma v = Some (VNat n) -> SStepEval sigma (EVar v) (ELitNat n)
+| SSEVarNat (var: nat) (val: Value): sigma var = Some val -> SStepEval sigma (EVar var) (value_to_expr val)
 | SSEVarBool (v: nat) (b: bool): sigma v = Some (VBool b) -> SStepEval sigma (EVar v) (ELitBool b)
 | SSEAndL (lhs lhs' rhs: Expr): SStepEval sigma lhs lhs' -> SStepEval sigma (EAnd lhs rhs) (EAnd lhs' rhs)
 | SSEAndR (lhs rhs rhs': Expr): SStepEval sigma rhs rhs' -> SStepEval sigma (EAnd lhs rhs) (EAnd lhs rhs')
@@ -52,6 +61,8 @@ Inductive SStepEval (sigma: nat -> option Value): Expr -> Expr -> Prop :=
 | SSEIfF (cond ifT ifF ifF': Expr): SStepEval sigma ifF ifF' -> SStepEval sigma (EIf cond ifT ifF) (EIf cond ifT ifF')
 | SSEIf (b: bool) (ifT ifF: Expr): SStepEval sigma (EIf (ELitBool b) ifT ifF) (if b then ifT else ifF)
 .
+
+Definition StarEval (sigma: nat -> option Value) := clos_refl_trans Expr (SStepEval sigma).
 
 Variant TypeTag: Set := TNat | TBool.
 
@@ -69,9 +80,23 @@ Inductive ExprType (gamma: nat -> option TypeTag): Expr -> TypeTag -> Prop :=
 (* TODO: complete type statement *)
 .
 
+(* TODO: prove theorem *)
+Lemma EvalSStep (sigma: nat -> option Value) (e: Expr) (v: Value):
+  StarEval sigma e (value_to_expr v) <-> eval sigma e = Some v.
+Proof.
+Abort.
+
 (* TODO: express and prove theorem, modifying any part of ExprType is allowed *)
 (* the statement is obviously wrong, but gives the idea that your theorem should express *)
-Fail Lemma CorrectType:
+Fail Theorem CorrectEvalType:
   forall (sigma: nat -> option Value) (e: Expr) (t: TypeTag),
   ExprType sigma e t -> ValueType (eval sigma e) t
+.
+
+(* TODO: express and prove theorem, modifying any part of ExprType is allowed *)
+(* the statement is obviously wrong, but gives the idea that your theorem should express *)
+(* you may find helpful to define a lemma about typing SStepEval *)
+Fail Theorem CorrectStarEvalType:
+  forall (sigma: nat -> option Value) (e: Expr) (t: TypeTag),
+  ExprType sigma e t -> exists (v: Value), StarEval sigma e v /\ ValueType v t
 .
