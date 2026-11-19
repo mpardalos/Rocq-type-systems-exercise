@@ -1,5 +1,3 @@
-From Stdlib Require Import NArith.NArith.
-
 Inductive Expr: Set :=
 | ELitNat (n: nat)
 | ELitBool (b: bool)
